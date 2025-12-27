@@ -2,26 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>MultiCorp Asia — Coming Soon</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;600;800;900&display=swap" rel="stylesheet">
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 
 <style>
 :root {
-  --bg1:#05080f;
-  --bg2:#0a1a2f;
+  --bg:#05080f;
   --accent:#4cc9f0;
   --accent2:#7209b7;
 }
 
 * {
-  box-sizing: border-box;
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
 }
 
 html,body {
@@ -29,7 +29,7 @@ html,body {
   padding:0;
   height:100%;
   font-family:'Montserrat',sans-serif;
-  background:radial-gradient(circle at 20% 20%,var(--bg2),var(--bg1));
+  background:var(--bg);
   color:#fff;
   overflow:hidden;
 }
@@ -44,8 +44,8 @@ canvas {
   position:fixed;
   inset:0;
   background:
-    radial-gradient(ellipse at top,rgba(255,255,255,.05),transparent 60%),
-    linear-gradient(180deg,transparent,rgba(0,0,0,.7));
+    radial-gradient(circle at 30% 20%,rgba(255,255,255,.06),transparent 55%),
+    linear-gradient(to bottom,transparent,rgba(0,0,0,.75));
   z-index:1;
   pointer-events:none;
 }
@@ -57,63 +57,58 @@ canvas {
   display:flex;
   align-items:center;
   justify-content:center;
+  padding:1.5rem;
   text-align:center;
 }
 
 .logo {
-  font-size:clamp(3rem,8vw,7rem);
   font-weight:900;
-  letter-spacing:0.35em;
   text-transform:uppercase;
-  line-height:1;
+  letter-spacing:0.3em;
+  line-height:1.1;
+  font-size:clamp(2.2rem,8vw,6rem);
   background:linear-gradient(120deg,#fff,var(--accent),var(--accent2));
   -webkit-background-clip:text;
   background-clip:text;
   color:transparent;
-  filter:drop-shadow(0 10px 40px rgba(0,0,0,.8));
+  filter:drop-shadow(0 8px 30px rgba(0,0,0,.9));
 }
 
 .sub {
-  margin-top:1.5rem;
-  font-size:clamp(.8rem,1.5vw,1.1rem);
-  letter-spacing:.6em;
-  opacity:.6;
-}
-
-.scanline {
-  position:fixed;
-  inset:0;
-  background:
-    repeating-linear-gradient(
-      to bottom,
-      rgba(255,255,255,.02),
-      rgba(255,255,255,.02) 1px,
-      transparent 1px,
-      transparent 3px
-    );
-  z-index:3;
-  mix-blend-mode:overlay;
-  animation:scan 6s linear infinite;
-  pointer-events:none;
-}
-
-@keyframes scan {
-  from { transform:translateY(-100%); }
-  to   { transform:translateY(100%); }
+  margin-top:1rem;
+  font-size:clamp(.7rem,2.5vw,1rem);
+  letter-spacing:.45em;
+  opacity:.65;
 }
 
 .glow {
   position:absolute;
-  inset:-40%;
+  inset:-50%;
   background:conic-gradient(from 0deg,var(--accent),transparent,var(--accent2),transparent,var(--accent));
-  animation:spin 20s linear infinite;
   filter:blur(120px);
-  opacity:.25;
+  opacity:.22;
+  animation:spin 24s linear infinite;
   z-index:-1;
 }
 
 @keyframes spin {
   to { transform:rotate(360deg); }
+}
+
+/* MOBILE PERFORMANCE */
+@media (max-width: 768px) {
+  .glow { filter:blur(80px); opacity:.18; }
+}
+
+/* SAFE AREA SUPPORT */
+@supports (padding: env(safe-area-inset-top)) {
+  .center {
+    padding:
+      calc(1.5rem + env(safe-area-inset-top))
+      calc(1.5rem + env(safe-area-inset-right))
+      calc(1.5rem + env(safe-area-inset-bottom))
+      calc(1.5rem + env(safe-area-inset-left));
+  }
 }
 </style>
 </head>
@@ -122,7 +117,6 @@ canvas {
 
 <canvas id="space"></canvas>
 <div class="overlay"></div>
-<div class="scanline"></div>
 
 <div class="center">
   <div>
@@ -133,61 +127,70 @@ canvas {
 </div>
 
 <script>
-/* THREE.JS STARFIELD */
 const canvas = document.getElementById('space');
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 2000);
-camera.position.z = 400;
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+const camera = new THREE.PerspectiveCamera(
+  75,
+  innerWidth / innerHeight,
+  0.1,
+  1500
+);
+camera.position.z = 350;
+
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  alpha:true,
+  antialias: window.devicePixelRatio <= 1.5
+});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.8));
 renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(devicePixelRatio);
 
 const stars = new THREE.BufferGeometry();
-const starCount = 6000;
-const positions = new Float32Array(starCount * 3);
+const count = innerWidth < 768 ? 2500 : 4500;
+const positions = new Float32Array(count * 3);
 
-for (let i = 0; i < starCount * 3; i++) {
-  positions[i] = (Math.random() - 0.5) * 2000;
+for (let i = 0; i < count * 3; i++) {
+  positions[i] = (Math.random() - 0.5) * 1600;
 }
 stars.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-const starMaterial = new THREE.PointsMaterial({
-  color: 0xffffff,
-  size: 1.2,
+const material = new THREE.PointsMaterial({
+  size: innerWidth < 768 ? 1.4 : 1.1,
+  color:0xffffff,
   transparent:true,
-  opacity:.8
+  opacity:.75
 });
 
-const starField = new THREE.Points(stars, starMaterial);
-scene.add(starField);
+const field = new THREE.Points(stars, material);
+scene.add(field);
 
 function animate() {
   requestAnimationFrame(animate);
-  starField.rotation.y += 0.0006;
-  starField.rotation.x += 0.0003;
+  field.rotation.y += 0.0005;
+  field.rotation.x += 0.00025;
   renderer.render(scene, camera);
 }
 animate();
 
 addEventListener('resize', () => {
-  camera.aspect = innerWidth/innerHeight;
+  camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
 
-/* GSAP ENTRANCE */
+/* ANIMATION */
 gsap.from('.logo', {
-  y:80,
+  y:60,
   opacity:0,
-  duration:1.8,
+  duration:1.4,
   ease:'power4.out'
 });
 gsap.from('.sub', {
-  y:40,
+  y:30,
   opacity:0,
-  duration:1.4,
-  delay:.6,
+  delay:.5,
+  duration:1.1,
   ease:'power3.out'
 });
 </script>
